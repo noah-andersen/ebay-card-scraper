@@ -16,13 +16,15 @@ A web scraper built with Scrapy and Playwright to collect images and data for gr
 ## ✨ Features
 
 - 🎴 Scrapes graded Pokemon card listings from eBay and Mercari
-- 🖼️ Downloads card images automatically and organizes by grading company
-- 📊 Extracts grading information (PSA, BGS, CGC, SGC)
+- 🖼️ **High-resolution image downloads** (1200-1600px) optimized for AI training
+- 📊 Extracts grading information (PSA, BGS, CGC, SGC, TAG)
 - 💰 Captures pricing data
 - 🔄 Handles pagination automatically
 - 🤖 Uses Playwright for JavaScript-heavy pages
-- 📈 **NEW**: Automatic CSV conversion with detailed statistics
-- 📉 **NEW**: Data analysis and price tracking capabilities
+- 📈 Automatic CSV conversion with detailed statistics
+- 📉 Data analysis and price tracking capabilities
+- 🎯 Quality filtering (minimum 400x400px for AI training datasets)
+- 📸 Automatic thumbnail-to-high-res URL conversion
 
 ## 🚀 Quick Start
 
@@ -49,7 +51,7 @@ python3 convert_to_csv.py output.json --with-stats
 
 This Scrapy + Playwright scraper successfully extracts graded Pokemon card listings from eBay, including:
 - Card titles and parsed card names
-- Grading company (PSA, BGS, CGC, SGC) and grades
+- Grading company (PSA, BGS, CGC, SGC, TAG) and grades
 - Prices
 - Listing URLs
 - Card images (automatically downloaded and organized)
@@ -144,6 +146,19 @@ Edit `graded_cards_scraper/settings.py`:
 IMAGES_STORE = '/custom/path/to/images'
 ```
 
+#### Adjust Image Quality for AI Training
+Edit `graded_cards_scraper/settings.py`:
+```python
+# Increase minimum dimensions for higher quality dataset
+IMAGES_MIN_HEIGHT = 800  # Default: 400
+IMAGES_MIN_WIDTH = 800   # Default: 400
+
+# Adjust download timeout for large high-res images
+DOWNLOAD_TIMEOUT = 60  # Default: 30
+```
+
+See [HIGH_RESOLUTION_IMAGES.md](HIGH_RESOLUTION_IMAGES.md) for detailed information about image quality optimization for AI training.
+
 #### Enable/Disable Headless Mode
 Edit `graded_cards_scraper/settings.py`:
 ```python
@@ -192,6 +207,25 @@ scrapy crawl ebay_graded_cards -a search_query="Pokemon BGS 10" -O bgs_10.json
 ```
 
 ### Data Analysis
+
+#### Image Quality Analysis (For AI Training)
+
+After scraping, analyze image quality:
+```bash
+# Analyze all downloaded images
+python analyze_image_quality.py
+
+# Analyze specific directory
+python analyze_image_quality.py downloaded_images/ebay/PSA
+```
+
+This will show:
+- Total images and quality distribution
+- Average dimensions by source and grading company
+- AI training readiness assessment
+- Recommendations for filter adjustments
+
+#### JSON Data Analysis
 
 View scraped data:
 ```bash
@@ -273,7 +307,8 @@ ebay-card-scraper/
 │       ├── PSA/
 │       ├── BGS/
 │       ├── CGC/
-│       └── SGC/
+│       ├── SGC/
+│       └── TAG/
 ├── convert_to_csv.py             # CSV conversion CLI tool
 ├── examples.py                   # Usage examples
 ├── requirements.txt              # Python dependencies
@@ -289,7 +324,7 @@ Each scraped item includes:
 
 - **title**: Full listing title
 - **card_name**: Parsed card name
-- **grading_company**: PSA, BGS, CGC, or SGC
+- **grading_company**: PSA, BGS, CGC, SGC, or TAG
 - **grade**: Card grade (10, 9.5, 9, etc.)
 - **price**: Price in USD
 - **listing_url**: Direct link to listing
@@ -303,6 +338,27 @@ Each scraped item includes:
 - **[USAGE.md](USAGE.md)** - Complete scraper usage guide
 - **[CSV_CONVERSION.md](CSV_CONVERSION.md)** - CSV conversion documentation
 - **[CSV_FEATURE_SUMMARY.md](CSV_FEATURE_SUMMARY.md)** - CSV features overview
+- **[HIGH_RESOLUTION_IMAGES.md](HIGH_RESOLUTION_IMAGES.md)** - Image quality optimization for AI training
+
+## 🤖 AI Training Use Case
+
+This scraper is optimized for collecting training data for card grading prediction models:
+
+1. **High-Resolution Images**: Automatically downloads 1200-1600px images
+2. **Quality Filtering**: Rejects images below 400x400px
+3. **Organized Structure**: Images sorted by grading company and grade
+4. **Quality Analysis**: Built-in tool to verify dataset quality
+
+```bash
+# Scrape high-quality training data
+scrapy crawl ebay_graded_cards -a search_query="Pokemon PSA 10" -O psa10.json
+scrapy crawl ebay_graded_cards -a search_query="Pokemon PSA 9" -O psa9.json
+
+# Verify image quality
+python analyze_image_quality.py
+
+# Images are ready for preprocessing and model training!
+```
 
 ## Configuration
 

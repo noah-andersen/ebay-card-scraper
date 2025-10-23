@@ -53,6 +53,21 @@ class EbayGradedCardsSpider(scrapy.Spider):
             listing_url = listing.css('a.image-treatment::attr(href)').get()
             image_url = listing.css('img::attr(src)').get()
             
+            # Convert thumbnail to high-resolution image URL
+            # eBay image URLs use parameters like s-l140.jpg (140px) or s-l225.jpg (225px)
+            # Replace with s-l1600.jpg (1600px) or s-l1200.jpg (1200px) for higher resolution
+            if image_url:
+                # Replace size parameter with maximum resolution
+                import re
+                # Pattern matches s-l[number].jpg or s-l[number].png
+                high_res_url = re.sub(r's-l\d+', 's-l1600', image_url)
+                # Also try replacing other common thumbnail patterns
+                high_res_url = high_res_url.replace('$_1.JPG', '$_57.JPG')  # eBay's full size format
+                high_res_url = high_res_url.replace('$_12.JPG', '$_57.JPG')
+                high_res_url = high_res_url.replace('$_14.JPG', '$_57.JPG')
+                image_url = high_res_url
+                self.logger.debug(f"High-res image URL: {image_url}")
+            
             # Debug logging
             self.logger.info(f"Item {i}: title={title}, price={price}, url={listing_url is not None}")
             
@@ -91,14 +106,14 @@ class EbayGradedCardsSpider(scrapy.Spider):
             'grade': None,
         }
         
-        # Common grading companies
-        companies = ['PSA', 'BGS', 'CGC', 'SGC', 'Beckett']
+        # Common grading companies (including TAG)
+        companies = ['PSA', 'BGS', 'CGC', 'SGC', 'TAG', 'Beckett']
         
         for company in companies:
             if company in title.upper():
                 grading_info['grading_company'] = company
                 
-                # Try to extract grade (e.g., "PSA 10", "BGS 9.5")
+                # Try to extract grade (e.g., "PSA 10", "BGS 9.5", "TAG 10")
                 pattern = rf'{company}\s*(\d+(?:\.\d+)?)'
                 match = re.search(pattern, title, re.IGNORECASE)
                 if match:

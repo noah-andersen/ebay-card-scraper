@@ -11,11 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class ImageDownloadPipeline(ImagesPipeline):
-    """Pipeline for downloading and storing card images"""
+    """Pipeline for downloading and storing card images with high-resolution support"""
     
     def get_media_requests(self, item, info):
         adapter = ItemAdapter(item)
         for image_url in adapter.get("image_urls", []):
+            logger.info(f"Requesting high-res image: {image_url}")
             yield scrapy.Request(image_url, meta={'item': item})
     
     def file_path(self, request, response=None, info=None, *, item=None):
@@ -42,10 +43,24 @@ class ImageDownloadPipeline(ImagesPipeline):
     
     def item_completed(self, results, item, info):
         adapter = ItemAdapter(item)
-        image_paths = [x['path'] for ok, x in results if ok]
+        image_paths = []
+        
+        for ok, result in results:
+            if ok:
+                image_paths.append(result['path'])
+                # Log image dimensions for quality verification
+                if 'width' in result and 'height' in result:
+                    logger.info(f"Downloaded high-res image: {result['path']} "
+                              f"(Size: {result['width']}x{result['height']}px, "
+                              f"Quality: {'Good' if result['width'] >= 800 else 'Low'})")
+            else:
+                logger.warning(f"Failed to download image: {result}")
         
         if not image_paths:
             logger.warning(f"No images downloaded for item: {adapter.get('title')}")
+        else:
+            logger.info(f"Successfully downloaded {len(image_paths)} high-resolution image(s) "
+                       f"for: {adapter.get('title')}")
         
         adapter['images'] = image_paths
         return item

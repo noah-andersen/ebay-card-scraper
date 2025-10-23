@@ -57,8 +57,22 @@ class MercariGradedCardsSpider(scrapy.Spider):
             # Extract price
             price = listing.css('[data-testid="ItemPrice"]::text').get()
             
-            # Extract image
+            # Extract image and convert to high-resolution
             image_url = listing.css('img::attr(src)').get()
+            if image_url:
+                # Mercari uses cloudinary CDN with transformation parameters
+                # Replace thumbnail transformations with high-res parameters
+                # Example: /c_fill,f_auto,fl_progressive:steep,h_190,q_60,w_190/
+                # Replace with larger dimensions and better quality
+                import re
+                # Remove size restrictions and set to high quality
+                high_res_url = re.sub(r'/c_fill,[^/]+/', '/c_fit,f_auto,fl_progressive:steep,h_1600,q_95,w_1600/', image_url)
+                # Also handle other common patterns
+                high_res_url = re.sub(r'/w_\d+,h_\d+/', '/w_1600,h_1600/', high_res_url)
+                high_res_url = re.sub(r'/q_\d+/', '/q_95/', high_res_url)
+                image_url = high_res_url
+                self.logger.debug(f"High-res image URL: {image_url}")
+            
             image_urls = [image_url] if image_url else []
             
             if title:
@@ -106,14 +120,14 @@ class MercariGradedCardsSpider(scrapy.Spider):
             'grade': None,
         }
         
-        # Common grading companies
-        companies = ['PSA', 'BGS', 'CGC', 'SGC', 'Beckett']
+        # Common grading companies (including TAG)
+        companies = ['PSA', 'BGS', 'CGC', 'SGC', 'TAG', 'Beckett']
         
         for company in companies:
             if company in title.upper():
                 grading_info['grading_company'] = company
                 
-                # Try to extract grade (e.g., "PSA 10", "BGS 9.5")
+                # Try to extract grade (e.g., "PSA 10", "BGS 9.5", "TAG 10")
                 pattern = rf'{company}\s*(\d+(?:\.\d+)?)'
                 match = re.search(pattern, title, re.IGNORECASE)
                 if match:

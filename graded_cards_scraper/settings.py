@@ -65,6 +65,25 @@ JSON_TO_CSV_WITH_STATS = True  # Generate statistics file along with CSV
 # Images will be stored in this directory
 IMAGES_STORE = "downloaded_images"
 
+# Image Pipeline Settings for High-Resolution Training Data
+# Disable image thumbnailing to keep original resolution
+IMAGES_THUMBS = {}  # Empty dict disables thumbnail generation
+
+# Set minimum image dimensions (smaller images will be filtered out)
+# This ensures you only get quality images for AI training
+IMAGES_MIN_HEIGHT = 400
+IMAGES_MIN_WIDTH = 400
+
+# Disable image expiration (keep all images)
+IMAGES_EXPIRES = 0  # Never expire images
+
+# Image download settings
+MEDIA_ALLOW_REDIRECTS = True  # Follow redirects to get actual image
+IMAGES_RESULT_FIELD = 'images'  # Field name to store downloaded image paths
+
+# Download timeout for large images
+DOWNLOAD_TIMEOUT = 30  # Increased timeout for high-res images
+
 # Configure item pipelines
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
