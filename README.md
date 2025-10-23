@@ -1,17 +1,14 @@
 
 
 # eBay and Mercari Graded Pokemon Card Scraper
-
 ![Python](https://img.shields.io/badge/python-3.13+-blue.svg)
 ![Scrapy](https://img.shields.io/badge/scrapy-2.13+-green.svg)
 ![Playwright](https://img.shields.io/badge/playwright-1.40+-red.svg)
 ![Pandas](https://img.shields.io/badge/pandas-2.0+-orange.svg)
-
+---
 A web scraper built with Scrapy and Playwright to collect images and data for graded Pokemon cards from eBay and Mercari.
 
-<p align="center">
-  <img src="readme_imgs/output_table.png">
-</p>
+<img src="readme_imgs/output_table.png" alt="output table">
 
 ## ✨ Features
 
