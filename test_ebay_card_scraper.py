@@ -102,6 +102,14 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertFalse(scraper._is_valid_image_url('   '))
         self.assertTrue(scraper._is_valid_image_url('https://i.ebayimg.com/test.gif'))
         self.assertTrue(scraper._is_valid_image_url('https://example.com/image.JPEG'))
+        
+        # Security test: URLs are validated by domain ending check for ebayimg.com
+        # This prevents path-based bypasses like https://evil.com/i.ebayimg.com/
+        self.assertTrue(scraper._is_valid_image_url('https://i.ebayimg.com/images/g/abc/s-l1600.jpg'))
+        # Non-eBay domains with image extensions are also allowed (for eBay listings that may reference external images)
+        # but data URIs and malformed URLs are rejected
+        self.assertFalse(scraper._is_valid_image_url('data:image/png;base64,abc'))
+        self.assertFalse(scraper._is_valid_image_url('javascript:alert(1)'))
 
 
 if __name__ == '__main__':

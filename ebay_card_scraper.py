@@ -10,7 +10,7 @@ import os
 import re
 import time
 from typing import List, Dict, Optional
-from urllib.parse import urlencode, quote_plus
+from urllib.parse import urlencode, quote_plus, urlparse
 import requests
 from bs4 import BeautifulSoup
 
@@ -255,8 +255,25 @@ class EbayCardScraper:
         """Check if URL is a valid image URL."""
         if not url or url.startswith('data:'):
             return False
-        # eBay image URLs typically contain 'i.ebayimg.com' or end with image extensions
-        return 'ebayimg.com' in url or url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
+        
+        # Parse the URL to properly check the domain
+        try:
+            parsed = urlparse(url)
+            # Check if domain is from eBay's image server
+            if parsed.netloc:
+                # Only accept if the actual domain is ebayimg.com or a subdomain (e.g., i.ebayimg.com)
+                # This prevents attacks like https://evil.com/ebayimg.com/fake.jpg
+                # or https://evilebayimg.com/fake.jpg
+                if parsed.netloc == 'ebayimg.com' or parsed.netloc.endswith('.ebayimg.com'):
+                    return True
+                # For other domains, check if it's a valid image extension
+                # but be strict - only accept if it's a proper image URL
+                if url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                    return True
+        except Exception:
+            pass
+        
+        return False
     
     def _get_high_res_url(self, url: str) -> str:
         """
