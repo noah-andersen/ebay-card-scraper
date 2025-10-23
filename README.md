@@ -26,6 +26,10 @@ A web scraper built with Scrapy and Playwright to collect images and data for gr
 - 🎯 Quality filtering (minimum 400x400px for AI training datasets)
 - 📸 Automatic thumbnail-to-high-res URL conversion
 
+<div align="center">
+<img src="https://i.insider.com/5db71081dee019717f1300d7?width=700">
+</div>
+
 ## 🚀 Quick Start
 
 ```bash
