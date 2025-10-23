@@ -29,7 +29,7 @@ ENV/
 # Scrapy
 .scrapy/
 downloaded_images/
-data_scrapped
+data_scraped/
 *.json
 *.jsonl
 *.csv
