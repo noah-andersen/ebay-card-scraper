@@ -1,17 +1,19 @@
-# eBay Card Scraper
+# Graded Pokemon Card Scraper
 
-A Python-based web scraper for collecting image data of graded Pokemon cards from eBay. This tool searches for graded cards by grading company (PSA, BGS, CGC) and grade level, then saves the image data for analysis or training purposes.
+A Python-based web scraper for collecting image data of graded Pokemon cards from multiple marketplaces. This tool searches for graded cards by grading company (PSA, BGS, CGC) and grade level, then saves the image data for analysis or training purposes.
 
 ## Features
 
-- Search eBay for graded Pokemon cards by:
+- **Multi-marketplace support**: eBay and Mercari
+- Search for graded Pokemon cards by:
   - Grading company (PSA, BGS, CGC)
   - Grade level (1-10)
   - Card name/keywords
 - Download and save card images
 - Store metadata (grade, grading company, price, listing details)
 - Export data to CSV for easy analysis
-- Built-in rate limiting to respect eBay's servers
+- Built-in rate limiting to respect marketplace servers
+- Modular architecture for easy marketplace additions
 
 ## Installation
 
@@ -32,27 +34,51 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file (optional for API keys if using eBay API):
-```bash
-cp .env.example .env
-# Edit .env with your credentials if needed
-```
-
 ## Usage
 
-### Basic Usage
+### Command-Line Interface
+
+Search a single marketplace:
+```bash
+# Search eBay for PSA 10 cards
+python main.py --marketplace ebay --company PSA --grade 10 --max-results 50
+
+# Search Mercari for BGS 9.5 Charizard
+python main.py --marketplace mercari --company BGS --grade 9.5 --card-name Charizard --max-results 20
+```
+
+Search both marketplaces:
+```bash
+# Search both eBay and Mercari for CGC 10 cards
+python main.py --marketplace both --company CGC --grade 10 --max-results 50
+```
+
+Search eBay sold listings:
+```bash
+# eBay sold/completed listings only
+python main.py --marketplace ebay --company PSA --grade 10 --sold-only --max-results 30
+```
+
+### Python API
 
 ```python
-from scraper import EbayScraper
+from scrapers import EbayScraper, MercariScraper
 
-# Initialize scraper
-scraper = EbayScraper(output_dir='./data')
-
-# Search for PSA 10 graded Pokemon cards
-scraper.search_graded_cards(
+# eBay scraper
+ebay = EbayScraper(output_dir='./data')
+ebay.search_graded_cards(
     grading_company='PSA',
     grade=10,
     max_results=50
+)
+
+# Mercari scraper
+mercari = MercariScraper(output_dir='./data')
+mercari.search_graded_cards(
+    grading_company='BGS',
+    grade=9.5,
+    card_name='Charizard',
+    max_results=30
 )
 
 # Search for specific card
@@ -81,16 +107,24 @@ python main.py --company CGC --all-grades --max-results 100
 
 ```
 ebay-card-scraper/
-├── scraper.py          # Main scraper class
-├── main.py             # CLI entry point
-├── utils.py            # Helper functions
-├── config.py           # Configuration settings
-├── requirements.txt    # Python dependencies
-├── .env.example        # Environment variables template
-├── data/              # Output directory for images and CSV
-│   ├── images/        # Downloaded card images
-│   └── metadata.csv   # Card metadata
-└── README.md
+├── scrapers/            # Marketplace scrapers
+│   ├── __init__.py      # Package initialization
+│   ├── base_scraper.py  # Abstract base class
+│   ├── ebay_scraper.py  # eBay implementation
+│   └── mercari_scraper.py  # Mercari implementation
+├── main.py              # CLI entry point
+├── config.py            # Configuration settings
+├── requirements.txt     # Python dependencies
+├── data/                # Output directory (created automatically)
+│   ├── ebay/            # eBay downloads
+│   │   ├── images/      # Card images
+│   │   └── metadata.csv # eBay metadata
+│   └── mercari/         # Mercari downloads
+│       ├── images/      # Card images
+│       └── metadata.csv # Mercari metadata
+├── README.md
+├── QUICKSTART.md        # Quick start guide
+└── TROUBLESHOOTING.md   # Common issues
 ```
 
 ## Output Format
@@ -101,37 +135,86 @@ Images are saved with the naming convention:
 ```
 
 Metadata CSV includes:
-- `listing_id`: eBay listing ID
+- `marketplace`: ebay or mercari
+- `listing_id`: Unique listing identifier
 - `card_name`: Name/title of the card
 - `grading_company`: PSA, BGS, or CGC
 - `grade`: Card grade (1-10 or 9.5 for BGS)
 - `price`: Current or sold price
-- `image_url`: Original eBay image URL
+- `image_url`: Original image URL
 - `image_path`: Local path to saved image
 - `timestamp`: When the data was scraped
+- `sold`: Whether listing was sold (eBay only)
+
+## Configuration
+
+Edit `config.py` to customize:
+- Request timeouts and delays
+- Image format and quality
+- Output directories
+- Grading companies supported
 
 ## Rate Limiting
 
-The scraper includes built-in delays to avoid overwhelming eBay's servers:
-- 2-5 second delay between page requests
-- Configurable in `config.py`
+The scraper includes built-in delays to avoid overwhelming marketplace servers:
+- 3-7 second delay between page requests (configurable)
+- Random delays to appear more human-like
+- Respect for marketplace rate limits
+
+## Adding New Marketplaces
+
+To add a new marketplace, create a new scraper class that inherits from `BaseScraper`:
+
+```python
+from scrapers.base_scraper import BaseScraper
+
+class NewMarketplaceScraper(BaseScraper):
+    def __init__(self, output_dir=None):
+        super().__init__('marketplace_name', output_dir)
+    
+    def _build_search_url(self, grading_company, grade, card_name=None):
+        # Build marketplace-specific URL
+        pass
+    
+    def _extract_listing_data(self, listing_soup):
+        # Extract listing data
+        pass
+    
+    def search_graded_cards(self, grading_company, grade, **kwargs):
+        # Implement search logic
+        pass
+```
 
 ## Legal & Ethical Considerations
 
 - This scraper is for educational and research purposes
-- Respect eBay's Terms of Service and robots.txt
+- Respect marketplace Terms of Service and robots.txt
 - Use reasonable rate limiting
 - Don't use for commercial purposes without proper authorization
-- Consider using eBay's official API for production use
+- Consider using official APIs for production use
+
+## Troubleshooting
+
+If you encounter issues:
+1. Check `TROUBLESHOOTING.md` for common problems
+2. Review scraper logs for error messages
+3. Verify your internet connection
+4. Try increasing timeouts in `config.py`
+
+Common issues:
+- **eBay blocking**: eBay has sophisticated bot detection. Results may be limited.
+- **Connection timeouts**: Increase `TIMEOUT` in `config.py`
+- **No results found**: Some marketplaces may block automated requests
 
 ## Future Enhancements
 
+- [ ] Support for TCGPlayer marketplace
 - [ ] Support for more TCGs (Yu-Gi-Oh, Magic: The Gathering)
-- [ ] eBay API integration for more reliable data
 - [ ] Image quality filtering
-- [ ] Duplicate detection
+- [ ] Duplicate detection across marketplaces
 - [ ] Multi-threading for faster scraping
 - [ ] Database storage option
+- [ ] Price trend analysis
 
 ## Contributing
 

@@ -1,73 +1,29 @@
-import os
+"""
+eBay marketplace scraper for graded Pokemon cards (refactored).
+"""
+
 import time
 import random
 import requests
-import logging
-from urllib.parse import urlencode
 from bs4 import BeautifulSoup
-from PIL import Image
-from io import BytesIO
-import pandas as pd
+from urllib.parse import urlencode
+from typing import Optional, Dict
 from datetime import datetime
-from typing import List, Dict, Optional
 import re
 
+from scrapers.base_scraper import BaseScraper
 import config
 
 
-class EbayScraper:
-    """
-    A scraper for collecting graded Pokemon card images and metadata from eBay.
-    """
+class EbayScraper(BaseScraper):
+    """Scraper for eBay marketplace"""
+    
+    BASE_URL = "https://www.ebay.com/sch/i.html"
+    SOLD_BASE_URL = "https://www.ebay.com/sch/i.html?LH_Sold=1&LH_Complete=1"
     
     def __init__(self, output_dir: str = None):
-        """
-        Initialize the eBay scraper.
-        
-        Args:
-            output_dir: Directory to save images and metadata (default: config.OUTPUT_DIR)
-        """
-        self.output_dir = output_dir or config.OUTPUT_DIR
-        self.images_dir = os.path.join(self.output_dir, 'images')
-        self.metadata_file = os.path.join(self.output_dir, 'metadata.csv')
-        
-        # Create output directories
-        os.makedirs(self.images_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        # Setup logging
-        logging.basicConfig(
-            level=getattr(logging, config.LOG_LEVEL),
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(config.LOG_FILE),
-                logging.StreamHandler()
-            ]
-        )
-        self.logger = logging.getLogger(__name__)
-        
-        # Initialize metadata storage
-        self.metadata = []
-        
-        # Load existing metadata if available
-        if os.path.exists(self.metadata_file):
-            try:
-                existing_df = pd.read_csv(self.metadata_file)
-                self.metadata = existing_df.to_dict('records')
-                self.logger.info(f"Loaded {len(self.metadata)} existing records")
-            except Exception as e:
-                self.logger.warning(f"Could not load existing metadata: {e}")
-    
-    def _get_headers(self) -> Dict[str, str]:
-        """Get random user agent headers for requests."""
-        return {
-            'User-Agent': random.choice(config.USER_AGENTS),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-        }
+        super().__init__('ebay', output_dir)
+        self.logger.info("eBay scraper initialized")
     
     def _build_search_url(self, grading_company: str, grade: float, card_name: str = None, 
                          sold_only: bool = False) -> str:
@@ -84,7 +40,7 @@ class EbayScraper:
             Complete eBay search URL
         """
         # Build search query
-        query_parts = ['pokemon', grading_company, str(grade)]
+        query_parts = ['pokemon', grading_company, str(int(grade) if grade == int(grade) else grade)]
         if card_name:
             query_parts.insert(1, card_name)
         
@@ -102,7 +58,7 @@ class EbayScraper:
             params['LH_Sold'] = '1'
             params['LH_Complete'] = '1'
         
-        base_url = config.EBAY_SOLD_BASE_URL if sold_only else config.EBAY_BASE_URL
+        base_url = self.SOLD_BASE_URL if sold_only else self.BASE_URL
         url = f"{base_url.split('?')[0]}?{urlencode(params)}"
         
         return url
@@ -133,6 +89,10 @@ class EbayScraper:
                         listing_soup.find('h3', class_='s-item__title')
             title = title_elem.get_text(strip=True) if title_elem else 'Unknown'
             
+            # Skip "Shop on eBay" and similar
+            if "Shop on eBay" in title or not title or title == "Unknown":
+                return None
+            
             # Extract price
             price_elem = listing_soup.find('span', class_='s-item__price')
             price_text = price_elem.get_text(strip=True) if price_elem else '0'
@@ -158,48 +118,6 @@ class EbayScraper:
             self.logger.error(f"Error extracting listing data: {e}")
             return None
     
-    def _download_image(self, image_url: str, filename: str) -> Optional[str]:
-        """
-        Download and save an image from URL.
-        
-        Args:
-            image_url: URL of the image
-            filename: Filename to save the image as
-            
-        Returns:
-            Path to saved image or None if download fails
-        """
-        try:
-            response = requests.get(image_url, headers=self._get_headers(), 
-                                   timeout=config.TIMEOUT)
-            response.raise_for_status()
-            
-            # Open image
-            img = Image.open(BytesIO(response.content))
-            
-            # Convert to RGB if necessary
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img = img.convert('RGB')
-            
-            # Resize if too large
-            if img.size[0] > config.MAX_IMAGE_SIZE[0] or img.size[1] > config.MAX_IMAGE_SIZE[1]:
-                img.thumbnail(config.MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
-            
-            # Save image
-            filepath = os.path.join(self.images_dir, filename)
-            img.save(filepath, config.IMAGE_FORMAT, quality=config.IMAGE_QUALITY)
-            
-            self.logger.info(f"Saved image: {filename}")
-            return filepath
-            
-        except Exception as e:
-            self.logger.error(f"Error downloading image from {image_url}: {e}")
-            return None
-    
-    def _sanitize_filename(self, text: str) -> str:
-        """Remove invalid characters from filename."""
-        return re.sub(r'[^\w\s-]', '', text).strip().replace(' ', '_')[:50]
-    
     def search_graded_cards(self, grading_company: str, grade: float, 
                            card_name: str = None, max_results: int = 50,
                            sold_only: bool = False) -> int:
@@ -221,7 +139,7 @@ class EbayScraper:
         if grading_company not in config.GRADING_COMPANIES:
             raise ValueError(f"Invalid grading company. Must be one of: {list(config.GRADING_COMPANIES.keys())}")
         
-        self.logger.info(f"Starting search for {grading_company} {grade} Pokemon cards" + 
+        self.logger.info(f"Starting eBay search for {grading_company} {grade} Pokemon cards" + 
                         (f" - {card_name}" if card_name else ""))
         
         url = self._build_search_url(grading_company, grade, card_name, sold_only)
@@ -248,6 +166,11 @@ class EbayScraper:
                 
                 if not listings:
                     self.logger.warning(f"No listings found on page {page}")
+                    # Save HTML for debugging
+                    if page == 1:
+                        with open('ebay_debug.html', 'w', encoding='utf-8') as f:
+                            f.write(response.text)
+                        self.logger.info("Saved page HTML to ebay_debug.html for inspection")
                     break
                 
                 self.logger.info(f"Found {len(listings)} listings on page {page}")
@@ -276,6 +199,7 @@ class EbayScraper:
                     if filepath:
                         # Add to metadata
                         self.metadata.append({
+                            'marketplace': 'ebay',
                             'listing_id': listing_data['listing_id'],
                             'card_name': listing_data['title'],
                             'grading_company': grading_company,
@@ -306,55 +230,19 @@ class EbayScraper:
         # Save metadata
         self._save_metadata()
         
-        self.logger.info(f"Completed! Downloaded {downloaded_count} images")
+        self.logger.info(f"Completed! Downloaded {downloaded_count} images from eBay")
         return downloaded_count
+
+
+if __name__ == '__main__':
+    # Test the scraper
+    print("Testing eBay scraper...\n")
     
-    def _save_metadata(self):
-        """Save metadata to CSV file."""
-        try:
-            df = pd.DataFrame(self.metadata)
-            df.to_csv(self.metadata_file, index=False)
-            self.logger.info(f"Saved metadata to {self.metadata_file}")
-        except Exception as e:
-            self.logger.error(f"Error saving metadata: {e}")
+    scraper = EbayScraper()
+    count = scraper.search_graded_cards(
+        grading_company='PSA',
+        grade=10,
+        max_results=5
+    )
     
-    def search_all_grades(self, grading_company: str, card_name: str = None,
-                         max_results_per_grade: int = 20, sold_only: bool = False):
-        """
-        Search for all grades of a grading company.
-        
-        Args:
-            grading_company: PSA, BGS, or CGC
-            card_name: Optional specific card name
-            max_results_per_grade: Max results per grade level
-            sold_only: Whether to search only sold listings
-        """
-        grading_company = grading_company.upper()
-        
-        if grading_company == 'PSA':
-            grades = config.PSA_GRADES
-        elif grading_company in ['BGS', 'BECKETT']:
-            grades = config.BGS_GRADES
-        elif grading_company == 'CGC':
-            grades = config.CGC_GRADES
-        else:
-            raise ValueError(f"Unknown grading company: {grading_company}")
-        
-        total_downloaded = 0
-        for grade in grades:
-            self.logger.info(f"\n{'='*60}")
-            self.logger.info(f"Searching for {grading_company} {grade} cards")
-            self.logger.info(f"{'='*60}\n")
-            
-            count = self.search_graded_cards(
-                grading_company=grading_company,
-                grade=grade,
-                card_name=card_name,
-                max_results=max_results_per_grade,
-                sold_only=sold_only
-            )
-            total_downloaded += count
-        
-        self.logger.info(f"\n{'='*60}")
-        self.logger.info(f"Total images downloaded: {total_downloaded}")
-        self.logger.info(f"{'='*60}\n")
+    print(f"\nTest complete! Downloaded {count} images from eBay")

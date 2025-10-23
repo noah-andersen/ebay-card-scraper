@@ -19,10 +19,10 @@ BGS_GRADES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9,
 CGC_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 # Scraping settings
-REQUEST_DELAY_MIN = 2  # Minimum seconds between requests
-REQUEST_DELAY_MAX = 5  # Maximum seconds between requests
+REQUEST_DELAY_MIN = 3  # Minimum seconds between requests (increased for reliability)
+REQUEST_DELAY_MAX = 7  # Maximum seconds between requests (increased for reliability)
 MAX_RETRIES = 3
-TIMEOUT = 30  # Request timeout in seconds
+TIMEOUT = 60  # Request timeout in seconds (increased from 30)
 
 # Output settings
 OUTPUT_DIR = './data'

@@ -1,37 +1,46 @@
 #!/usr/bin/env python3
 """
-Command-line interface for eBay card scraper.
+Command-line interface for multi-marketplace card scraper.
 
 Usage:
-    python main.py --company PSA --grade 10 --max-results 50
-    python main.py --company BGS --grade 9.5 --card-name Charizard --max-results 20
-    python main.py --company CGC --all-grades --max-results 100
+    python main.py --marketplace ebay --company PSA --grade 10 --max-results 50
+    python main.py --marketplace mercari --company BGS --grade 9.5 --card-name Charizard --max-results 20
+    python main.py --marketplace both --company CGC --grade 10 --max-results 100
 """
 
 import argparse
 import sys
-from scraper import EbayScraper
+from scrapers.ebay_scraper import EbayScraper
+from scrapers.mercari_scraper import MercariScraper
 import config
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Scrape eBay for graded Pokemon card images',
+        description='Scrape marketplaces for graded Pokemon card images',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  Search for PSA 10 cards:
-    python main.py --company PSA --grade 10 --max-results 50
+  Search eBay for PSA 10 cards:
+    python main.py --marketplace ebay --company PSA --grade 10 --max-results 50
 
-  Search for BGS 9.5 Charizard cards:
-    python main.py --company BGS --grade 9.5 --card-name Charizard --max-results 20
+  Search Mercari for BGS 9.5 Charizard cards:
+    python main.py --marketplace mercari --company BGS --grade 9.5 --card-name Charizard --max-results 20
 
-  Search all grades for CGC:
-    python main.py --company CGC --all-grades --max-results-per-grade 20
+  Search both marketplaces for CGC 10:
+    python main.py --marketplace both --company CGC --grade 10 --max-results 50
 
-  Search sold listings only:
-    python main.py --company PSA --grade 10 --sold-only --max-results 30
+  Search eBay sold listings only:
+    python main.py --marketplace ebay --company PSA --grade 10 --sold-only --max-results 30
         """
+    )
+    
+    parser.add_argument(
+        '--marketplace',
+        type=str,
+        required=True,
+        choices=['ebay', 'mercari', 'both'],
+        help='Marketplace to scrape (ebay, mercari, or both)'
     )
     
     parser.add_argument(
@@ -45,6 +54,7 @@ Examples:
     parser.add_argument(
         '--grade',
         type=float,
+        required=True,
         help='Card grade (1-10, or 9.5 for BGS)'
     )
     
@@ -58,26 +68,13 @@ Examples:
         '--max-results',
         type=int,
         default=50,
-        help='Maximum number of results to scrape (default: 50)'
-    )
-    
-    parser.add_argument(
-        '--max-results-per-grade',
-        type=int,
-        default=20,
-        help='Maximum results per grade when using --all-grades (default: 20)'
-    )
-    
-    parser.add_argument(
-        '--all-grades',
-        action='store_true',
-        help='Search all grades for the specified company'
+        help='Maximum number of results to scrape per marketplace (default: 50)'
     )
     
     parser.add_argument(
         '--sold-only',
         action='store_true',
-        help='Search only sold/completed listings'
+        help='Search only sold/completed listings (eBay only)'
     )
     
     parser.add_argument(
@@ -89,42 +86,48 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate arguments
-    if not args.all_grades and args.grade is None:
-        parser.error("Either --grade or --all-grades must be specified")
+    # Determine which marketplaces to scrape
+    marketplaces = []
+    if args.marketplace == 'both':
+        marketplaces = ['ebay', 'mercari']
+    else:
+        marketplaces = [args.marketplace]
     
-    if args.all_grades and args.grade is not None:
-        parser.error("Cannot specify both --grade and --all-grades")
-    
-    # Initialize scraper
+    # Initialize
     print("\n" + "="*60)
-    print("eBay Graded Pokemon Card Scraper")
+    print("Graded Pokemon Card Scraper")
     print("="*60 + "\n")
     
-    scraper = EbayScraper(output_dir=args.output_dir)
+    total_count = 0
     
     try:
-        if args.all_grades:
-            # Search all grades
-            scraper.search_all_grades(
-                grading_company=args.company,
-                card_name=args.card_name,
-                max_results_per_grade=args.max_results_per_grade,
-                sold_only=args.sold_only
-            )
-        else:
-            # Search specific grade
+        for marketplace in marketplaces:
+            print(f"\nScraping {marketplace.upper()}...")
+            print("-"*60)
+            
+            # Initialize scraper
+            if marketplace == 'ebay':
+                scraper = EbayScraper(output_dir=args.output_dir)
+            elif marketplace == 'mercari':
+                scraper = MercariScraper(output_dir=args.output_dir)
+            else:
+                continue
+            
+            # Search
             count = scraper.search_graded_cards(
                 grading_company=args.company,
                 grade=args.grade,
                 card_name=args.card_name,
                 max_results=args.max_results,
-                sold_only=args.sold_only
+                sold_only=args.sold_only if marketplace == 'ebay' else False
             )
             
-            print(f"\n{'='*60}")
-            print(f"Successfully downloaded {count} images")
-            print(f"{'='*60}\n")
+            total_count += count
+            print(f"✓ Downloaded {count} images from {marketplace.upper()}")
+        
+        print(f"\n{'='*60}")
+        print(f"✓ Complete! Total downloaded: {total_count} images")
+        print(f"{'='*60}\n")
     
     except KeyboardInterrupt:
         print("\n\nScraping interrupted by user")
