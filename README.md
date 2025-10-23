@@ -9,7 +9,9 @@
 
 A web scraper built with Scrapy and Playwright to collect images and data for graded Pokemon cards from eBay and Mercari.
 
-<img src="readme_imgs/output_table.png">
+<p align="center">
+  <img src="readme_imgs/output_table.png">
+</p>
 
 ## ✨ Features
 
