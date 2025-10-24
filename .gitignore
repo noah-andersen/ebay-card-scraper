@@ -30,6 +30,8 @@ ENV/
 .scrapy/
 downloaded_images/
 data_scraped/
+scraped_data/
+logs/
 *.json
 *.jsonl
 *.csv
