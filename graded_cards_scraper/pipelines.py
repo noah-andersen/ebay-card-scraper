@@ -20,14 +20,28 @@ class ImageDownloadPipeline(ImagesPipeline):
             yield scrapy.Request(image_url, meta={'item': item})
     
     def file_path(self, request, response=None, info=None, *, item=None):
-        """Generate custom file path for images"""
+        """Generate custom file path for images - organized by listing ID"""
         image_url = request.url
         adapter = ItemAdapter(item)
         
         source = adapter.get("source", "unknown")
-        card_name = adapter.get("card_name", "unknown").replace(" ", "_")
+        card_name = adapter.get("card_name")
+        
+        # Handle empty, None, or whitespace-only card_name
+        if not card_name:
+            # Use first 50 chars of title as fallback
+            title = adapter.get("title", "unknown")
+            card_name = title[:50] if title else "card"
+            logger.debug(f"Using title as card_name fallback: {card_name[:30]}...")
+        
+        # Clean card_name for use in filesystem
+        card_name = card_name.replace(" ", "_")[:50]  # Limit length
+        # Remove special characters that cause issues
+        card_name = "".join(c for c in card_name if c.isalnum() or c in "_-")
+        
         grade = adapter.get("grade", "ungraded")
         grading_company = adapter.get("grading_company", "unknown")
+        listing_id = adapter.get("listing_id", "unknown")
         
         # Extract file extension
         parsed = urlparse(image_url)
@@ -35,15 +49,27 @@ class ImageDownloadPipeline(ImagesPipeline):
         if not ext:
             ext = ".jpg"
         
-        # Create filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{source}/{grading_company}/{card_name}_{grade}_{timestamp}{ext}"
+        # Extract a simple image index from the URL or generate one
+        # This helps differentiate multiple images from the same listing
+        import hashlib
+        url_hash = hashlib.md5(image_url.encode()).hexdigest()[:8]
+        
+        # Create folder structure: source/grading_company/listing_id_cardname_grade/image_hash.ext
+        # This groups all images from the same listing together
+        folder_name = f"{listing_id}_{card_name}_{grade}".replace("/", "-").replace("\\", "-")
+        filename = f"{source}/{grading_company}/{folder_name}/image_{url_hash}{ext}"
         
         return filename
     
     def item_completed(self, results, item, info):
         adapter = ItemAdapter(item)
         image_paths = []
+        
+        # Check if we have any results
+        if not results:
+            logger.warning(f"No image download results for item: {adapter.get('title')}")
+            adapter['images'] = []
+            return item
         
         for ok, result in results:
             if ok:
@@ -54,14 +80,15 @@ class ImageDownloadPipeline(ImagesPipeline):
                               f"(Size: {result['width']}x{result['height']}px, "
                               f"Quality: {'Good' if result['width'] >= 800 else 'Low'})")
             else:
-                logger.warning(f"Failed to download image: {result}")
+                logger.error(f"Failed to download image for {adapter.get('title')}: {result}")
         
         if not image_paths:
-            logger.warning(f"No images downloaded for item: {adapter.get('title')}")
+            logger.warning(f"No images downloaded for item: {adapter.get('title')} (had {len(adapter.get('image_urls', []))} URLs)")
         else:
             logger.info(f"Successfully downloaded {len(image_paths)} high-resolution image(s) "
                        f"for: {adapter.get('title')}")
         
+        # Make sure to set images field even if empty
         adapter['images'] = image_paths
         return item
 

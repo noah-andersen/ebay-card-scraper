@@ -22,6 +22,7 @@ class GradedCardItem(scrapy.Item):
     # Source information
     source = scrapy.Field()  # 'ebay' or 'mercari'
     listing_url = scrapy.Field()
+    listing_id = scrapy.Field()  # Unique listing ID for organizing images
     seller = scrapy.Field()
     
     # Images

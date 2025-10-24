@@ -16,7 +16,8 @@ A web scraper built with Scrapy and Playwright to collect images and data for gr
 ## ✨ Features
 
 - 🎴 Scrapes graded Pokemon card listings from eBay and Mercari
-- 🖼️ **High-resolution image downloads** (1200-1600px) optimized for AI training
+- 🖼️ **Multiple high-resolution images per listing** (1200-1600px) - front, back, and detail shots
+- 📁 **Organized by listing** - each listing gets its own folder with all images
 - 📊 Extracts grading information (PSA, BGS, CGC, SGC, TAG)
 - 💰 Captures pricing data
 - 🔄 Handles pagination automatically
@@ -306,9 +307,14 @@ ebay-card-scraper/
 │   ├── extensions.py             # CSV auto-conversion extension
 │   ├── utils.py                  # CSV conversion utilities
 │   └── settings.py               # Scrapy configuration
-├── downloaded_images/            # Card images organized by company
+├── downloaded_images/            # Card images organized by listing
 │   └── ebay/
 │       ├── PSA/
+│       │   ├── 123456_Charizard_V_10/     # Each listing gets own folder
+│       │   │   ├── image_abc123.jpg       # Front of card
+│       │   │   ├── image_def456.jpg       # Back of card
+│       │   │   └── image_ghi789.jpg       # Detail shot
+│       │   └── 789012_Pikachu_VMAX_9.5/
 │       ├── BGS/
 │       ├── CGC/
 │       ├── SGC/
