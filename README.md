@@ -297,77 +297,41 @@ Top Card: $4,799.00 - 2016 Pokemon Charizard EX (PSA 10)
 
 ```
 ebay-card-scraper/
-├── graded_cards_scraper/
-│   ├── spiders/
-│   │   ├── ebay_spider.py       # eBay scraper (working!)
-│   │   └── mercari_spider.py    # Mercari scraper
-│   ├── items.py                  # Data models
-│   ├── middlewares.py            # Request/response middlewares
-│   ├── pipelines.py              # Image download & data processing
-│   ├── extensions.py             # CSV auto-conversion extension
-│   ├── utils.py                  # CSV conversion utilities
-│   └── settings.py               # Scrapy configuration
-├── downloaded_images/            # Card images organized by listing
-│   └── ebay/
-│       ├── PSA/
-│       │   ├── 123456_Charizard_V_10/     # Each listing gets own folder
-│       │   │   ├── image_abc123.jpg       # Front of card
-│       │   │   ├── image_def456.jpg       # Back of card
-│       │   │   └── image_ghi789.jpg       # Detail shot
-│       │   └── 789012_Pikachu_VMAX_9.5/
-│       ├── BGS/
-│       ├── CGC/
-│       ├── SGC/
-│       └── TAG/
-├── convert_to_csv.py             # CSV conversion CLI tool
-├── examples.py                   # Usage examples
-├── requirements.txt              # Python dependencies
-├── README.md                     # This file
-├── USAGE.md                      # Detailed usage guide
-├── CSV_CONVERSION.md             # CSV conversion documentation
-└── CSV_FEATURE_SUMMARY.md        # CSV features summary
+├── utils/                          # Utility modules (NEW!)
+│   ├── __init__.py                 # Package initialization with exports
+│   ├── analyze_image_quality.py   # Image quality analysis functions
+│   └── convert_to_csv.py           # CSV conversion functions
+├── graded_cards_scraper/           # Main scraper package
+│   ├── spiders/                    # Spider implementations
+│   ├── utils.py                    # Re-exports from utils package (backward compatibility)
+│   ├── items.py                    # Data models
+│   ├── pipelines.py                # Data processing pipelines
+│   ├── extensions.py               # Custom Scrapy extensions
+│   └── settings.py                 # Scraper configuration
+├── analyze_image_quality.py        # CLI wrapper for image analysis
+├── convert_to_csv.py               # CLI wrapper for CSV conversion
+├── downloaded_images/              # Downloaded card images
+├── scraped_data/                   # JSON/CSV output files
+└── requirements.txt                # Python dependencies
 ```
 
-## 📊 Output Data
+### Using the Utils Package
 
-Each scraped item includes:
+The utility functions are now organized in a dedicated `utils/` package for better code organization:
 
-- **title**: Full listing title
-- **card_name**: Parsed card name
-- **grading_company**: PSA, BGS, CGC, SGC, or TAG
-- **grade**: Card grade (10, 9.5, 9, etc.)
-- **price**: Price in USD
-- **listing_url**: Direct link to listing
-- **image_urls**: Card image URLs
-- **images**: Downloaded image paths
-- **source**: Marketplace (ebay/mercari)
-- **scraped_date**: ISO timestamp
+```python
+# Import from the utils package directly
+from utils.analyze_image_quality import analyze_image_quality, print_statistics
+from utils.convert_to_csv import json_to_csv, batch_json_to_csv
 
-## 📚 Documentation
+# Or use the CLI wrappers
+# python analyze_image_quality.py downloaded_images/
+# python convert_to_csv.py output.json --with-stats
+```
 
-- **[USAGE.md](USAGE.md)** - Complete scraper usage guide
-- **[CSV_CONVERSION.md](CSV_CONVERSION.md)** - CSV conversion documentation
-- **[CSV_FEATURE_SUMMARY.md](CSV_FEATURE_SUMMARY.md)** - CSV features overview
-- **[HIGH_RESOLUTION_IMAGES.md](HIGH_RESOLUTION_IMAGES.md)** - Image quality optimization for AI training
-
-## 🤖 AI Training Use Case
-
-This scraper is optimized for collecting training data for card grading prediction models:
-
-1. **High-Resolution Images**: Automatically downloads 1200-1600px images
-2. **Quality Filtering**: Rejects images below 400x400px
-3. **Organized Structure**: Images sorted by grading company and grade
-4. **Quality Analysis**: Built-in tool to verify dataset quality
-
-```bash
-# Scrape high-quality training data
-scrapy crawl ebay_graded_cards -a search_query="Pokemon PSA 10" -O psa10.json
-scrapy crawl ebay_graded_cards -a search_query="Pokemon PSA 9" -O psa9.json
-
-# Verify image quality
-python analyze_image_quality.py
-
-# Images are ready for preprocessing and model training!
+For backward compatibility, the functions are also available through `graded_cards_scraper.utils`:
+```python
+from graded_cards_scraper.utils import json_to_csv  # Still works!
 ```
 
 ## Configuration

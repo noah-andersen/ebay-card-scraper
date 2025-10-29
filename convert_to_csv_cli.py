@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
 Command-line interface for converting scraper JSON output to CSV format.
+This is a wrapper that calls the utility functions from the utils package.
 
 Usage:
-    python convert_to_csv.py output.json
-    python convert_to_csv.py output.json --csv cards.csv
-    python convert_to_csv.py output.json --with-stats
-    python convert_to_csv.py --batch scraped_data/
-    python convert_to_csv.py --merge output1.csv output2.csv --output all_cards.csv
+    python convert_to_csv_cli.py output.json
+    python convert_to_csv_cli.py output.json --csv cards.csv
+    python convert_to_csv_cli.py output.json --with-stats
+    python convert_to_csv_cli.py --batch scraped_data/
+    python convert_to_csv_cli.py --merge output1.csv output2.csv --output all_cards.csv
 """
 
 import argparse
 import sys
 from pathlib import Path
-from graded_cards_scraper.utils import (
+from utils.convert_to_csv import (
     json_to_csv, 
     json_to_csv_with_stats, 
     batch_json_to_csv,
@@ -28,19 +29,19 @@ def main():
         epilog="""
 Examples:
   # Convert single JSON file to CSV
-  python convert_to_csv.py output.json
+  python convert_to_csv_cli.py output.json
   
   # Convert with custom output name
-  python convert_to_csv.py output.json --csv cards.csv
+  python convert_to_csv_cli.py output.json --csv cards.csv
   
   # Convert and generate statistics
-  python convert_to_csv.py output.json --with-stats
+  python convert_to_csv_cli.py output.json --with-stats
   
   # Batch convert all JSON files in a directory
-  python convert_to_csv.py --batch scraped_data/
+  python convert_to_csv_cli.py --batch scraped_data/
   
   # Merge multiple CSV files
-  python convert_to_csv.py --merge output1.csv output2.csv -o all_cards.csv
+  python convert_to_csv_cli.py --merge output1.csv output2.csv -o all_cards.csv
         """
     )
     
