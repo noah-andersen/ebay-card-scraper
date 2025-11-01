@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-eBay Card Scraper - Modern GUI Application
-
-A modern graphical interface for the eBay and Mercari graded Pokemon card scraper.
+eBay Card Scraper GUI Application
 """
 
 import customtkinter as ctk
