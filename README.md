@@ -4,12 +4,15 @@
 ![Scrapy](https://img.shields.io/badge/scrapy-2.13+-green.svg)
 ![Playwright](https://img.shields.io/badge/playwright-1.40+-red.svg)
 ![Pandas](https://img.shields.io/badge/pandas-2.0+-orange.svg)
+![GUI](https://img.shields.io/badge/GUI-Available-brightgreen.svg)
 
 </div>
 
 # eBay and Mercari Graded Pokemon Card Scraper
 
 A web scraper built with Scrapy and Playwright to collect images and data for graded Pokemon cards from eBay and Mercari.
+
+**✨ NEW: Modern GUI Application Available! See [GUI Documentation](GUI_README.md) ✨**
 
 <img src="readme_imgs/output_table.png" alt="output table">
 
@@ -26,12 +29,33 @@ A web scraper built with Scrapy and Playwright to collect images and data for gr
 - 📉 Data analysis and price tracking capabilities
 - 🎯 Quality filtering (minimum 400x400px for AI training datasets)
 - 📸 Automatic thumbnail-to-high-res URL conversion
+- 🖥️ **Modern GUI Application** - User-friendly graphical interface
 
 <div align="center">
 <img src="https://i.insider.com/5db71081dee019717f1300d7?width=700">
 </div>
 
 ## 🚀 Quick Start
+
+### Option 1: GUI Application (Recommended for Beginners)
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Install Playwright browsers
+playwright install chromium
+
+# 3. Install spaCy NLP model (for filtering)
+python -m spacy download en_core_web_sm
+
+# 4. Launch GUI
+python launch_gui.py
+```
+
+**See [GUI_README.md](GUI_README.md) for complete GUI documentation.**
+
+### Option 2: Command Line Interface
 
 ```bash
 # 1. Install dependencies
