@@ -14,6 +14,10 @@ from pathlib import Path
 from datetime import datetime
 import sys
 
+# Import utility functions
+from utils.convert_to_csv import json_to_csv, json_to_csv_with_stats
+from utils.filter import filter_csv
+
 # Set appearance and color theme
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -218,19 +222,26 @@ class ScraperGUI(ctk.CTk):
             variable=self.auto_convert_csv_var
         ).grid(row=10, column=0, padx=10, pady=5, sticky="w")
         
+        self.auto_filter_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            scroll_frame,
+            text="Auto-filter scraped data",
+            variable=self.auto_filter_var
+        ).grid(row=11, column=0, padx=10, pady=5, sticky="w")
+        
         self.generate_stats_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             scroll_frame,
             text="Generate Statistics",
             variable=self.generate_stats_var
-        ).grid(row=11, column=0, padx=10, pady=5, sticky="w")
+        ).grid(row=12, column=0, padx=10, pady=5, sticky="w")
         
         # Output file
         ctk.CTkLabel(scroll_frame, text="Output Filename:", font=ctk.CTkFont(weight="bold")).grid(
-            row=12, column=0, padx=10, pady=(15, 5), sticky="w"
+            row=13, column=0, padx=10, pady=(15, 5), sticky="w"
         )
         output_frame = ctk.CTkFrame(scroll_frame)
-        output_frame.grid(row=13, column=0, padx=10, pady=(0, 15), sticky="ew")
+        output_frame.grid(row=14, column=0, padx=10, pady=(0, 15), sticky="ew")
         output_frame.grid_columnconfigure(0, weight=1)
         
         self.output_entry = ctk.CTkEntry(output_frame, width=300)
@@ -729,9 +740,15 @@ class ScraperGUI(ctk.CTk):
                 self.log_to_console("✅ Scraping completed successfully!")
                 
                 # Auto-convert if enabled
+                csv_file = None
                 if self.auto_convert_csv_var.get():
                     self.log_to_console("\nAuto-converting to CSV...")
-                    self._convert_to_csv(output_file)
+                    csv_file = self._convert_to_csv(output_file)
+                
+                # Auto-filter if enabled and CSV was created
+                if self.auto_filter_var.get() and csv_file:
+                    self.log_to_console("\nAuto-filtering data...")
+                    self._auto_filter_csv(csv_file)
             else:
                 self.log_to_console("=" * 60)
                 self.log_to_console("❌ Scraping failed!")
@@ -759,16 +776,65 @@ class ScraperGUI(ctk.CTk):
     def _convert_to_csv(self, json_file):
         """Convert JSON to CSV"""
         try:
-            cmd = ["python3", "convert_to_csv_cli.py", json_file]
-            if self.generate_stats_var.get():
-                cmd.append("--with-stats")
+            self.log_to_console(f"\n📊 Converting {json_file} to CSV...")
             
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            self.log_to_console(result.stdout)
-            if result.returncode != 0:
-                self.log_to_console(f"Conversion error: {result.stderr}")
+            if self.generate_stats_var.get():
+                # Convert with statistics
+                result = json_to_csv_with_stats(json_file)
+                self.log_to_console(f"✅ CSV created: {result['csv']}")
+                self.log_to_console(f"✅ Statistics saved: {result['stats']}")
+                return result['csv']
+            else:
+                # Convert without statistics
+                csv_path = json_to_csv(json_file)
+                self.log_to_console(f"✅ CSV created: {csv_path}")
+                return csv_path
+                
         except Exception as e:
-            self.log_to_console(f"Conversion failed: {str(e)}")
+            self.log_to_console(f"❌ Conversion failed: {str(e)}")
+            return None
+    
+    def _auto_filter_csv(self, csv_file):
+        """Auto-filter CSV data"""
+        try:
+            import io
+            import sys
+            
+            self.log_to_console(f"\n🔍 Auto-filtering {csv_file}...")
+            
+            # Use default filter settings
+            output_file = None  # Will add _filtered suffix automatically
+            delete_images = True
+            use_nlp = True
+            
+            # Redirect stdout to capture print statements
+            old_stdout = sys.stdout
+            sys.stdout = captured_output = io.StringIO()
+            
+            try:
+                # Call filter function
+                filter_csv(
+                    input_file=csv_file,
+                    output_file=output_file,
+                    delete_images=delete_images,
+                    use_nlp=use_nlp
+                )
+            finally:
+                # Restore stdout
+                sys.stdout = old_stdout
+                
+                # Get captured output and display key info
+                output = captured_output.getvalue()
+                # Only show summary lines to avoid cluttering console
+                for line in output.split('\n'):
+                    if line.strip() and any(keyword in line for keyword in ['SUMMARY', 'Total', 'kept', 'filtered', 'extracted', 'deleted', 'saved to']):
+                        self.log_to_console(line)
+            
+            self.log_to_console("✅ Auto-filtering completed!")
+            
+        except Exception as e:
+            sys.stdout = old_stdout  # Ensure stdout is restored
+            self.log_to_console(f"❌ Auto-filter failed: {str(e)}")
     
     def run_filter(self):
         """Run the data filter"""
@@ -787,47 +853,46 @@ class ScraperGUI(ctk.CTk):
     def _run_filter_thread(self, input_file):
         """Run filter in separate thread"""
         try:
+            import io
+            import sys
+            
             output_file = self.filter_output_entry.get().strip()
             if output_file == "Auto (adds _filtered suffix)":
                 output_file = None
             
-            # Build command
-            cmd = ["python3", "filter.py", input_file]
+            delete_images = self.delete_images_var.get()
+            use_nlp = self.use_nlp_var.get()
             
-            if output_file:
-                cmd.extend(["-o", output_file])
-            
-            if not self.delete_images_var.get():
-                cmd.append("--no-delete-images")
-            
-            if not self.use_nlp_var.get():
-                cmd.append("--no-nlp")
-            
-            self.log_to_console(f"Running filter: {' '.join(cmd)}", self.filter_console)
+            self.log_to_console(f"Running filter on: {input_file}", self.filter_console)
             self.log_to_console("=" * 60, self.filter_console)
             
-            # Run process
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1
-            )
+            # Redirect stdout to capture print statements
+            old_stdout = sys.stdout
+            sys.stdout = captured_output = io.StringIO()
             
-            # Stream output
-            for line in process.stdout:
-                self.log_to_console(line.rstrip(), self.filter_console)
+            try:
+                # Call filter function directly
+                filter_csv(
+                    input_file=input_file,
+                    output_file=output_file,
+                    delete_images=delete_images,
+                    use_nlp=use_nlp
+                )
+            finally:
+                # Restore stdout
+                sys.stdout = old_stdout
+                
+                # Get captured output and display it
+                output = captured_output.getvalue()
+                for line in output.split('\n'):
+                    if line.strip():
+                        self.log_to_console(line, self.filter_console)
             
-            process.wait()
-            
-            if process.returncode == 0:
-                self.log_to_console("✅ Filtering completed!", self.filter_console)
-            else:
-                self.log_to_console("❌ Filtering failed!", self.filter_console)
+            self.log_to_console("✅ Filtering completed!", self.filter_console)
         
         except Exception as e:
-            self.log_to_console(f"Error: {str(e)}", self.filter_console)
+            sys.stdout = old_stdout  # Ensure stdout is restored
+            self.log_to_console(f"❌ Error: {str(e)}", self.filter_console)
     
     def run_converter(self):
         """Run JSON to CSV converter"""
@@ -846,36 +911,22 @@ class ScraperGUI(ctk.CTk):
     def _run_converter_thread(self, input_file):
         """Run converter in separate thread"""
         try:
-            cmd = ["python3", "convert_to_csv_cli.py", input_file]
-            
-            if self.converter_stats_var.get():
-                cmd.append("--with-stats")
-            
             self.log_to_console(f"Converting: {input_file}", self.converter_console)
             self.log_to_console("=" * 60, self.converter_console)
             
-            # Run process
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1
-            )
-            
-            # Stream output
-            for line in process.stdout:
-                self.log_to_console(line.rstrip(), self.converter_console)
-            
-            process.wait()
-            
-            if process.returncode == 0:
-                self.log_to_console("✅ Conversion completed!", self.converter_console)
+            # Call conversion function directly
+            if self.converter_stats_var.get():
+                result = json_to_csv_with_stats(input_file)
+                self.log_to_console(f"✅ CSV created: {result['csv']}", self.converter_console)
+                self.log_to_console(f"✅ Statistics saved: {result['stats']}", self.converter_console)
             else:
-                self.log_to_console("❌ Conversion failed!", self.converter_console)
+                csv_path = json_to_csv(input_file)
+                self.log_to_console(f"✅ CSV created: {csv_path}", self.converter_console)
+            
+            self.log_to_console("✅ Conversion completed!", self.converter_console)
         
         except Exception as e:
-            self.log_to_console(f"Error: {str(e)}", self.converter_console)
+            self.log_to_console(f"❌ Error: {str(e)}", self.converter_console)
     
     def save_settings(self):
         """Save settings to configuration file"""
