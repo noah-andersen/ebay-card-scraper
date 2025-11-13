@@ -12,7 +12,7 @@
 set -e  # Exit on error
 
 # Configuration
-OUTPUT_DIR="scraped_data"
+OUTPUT_DIR="cgc_pokemon_ebay"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_JSON="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.json"
 OUTPUT_CSV="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.csv"
@@ -22,21 +22,21 @@ STATS_FILE="${OUTPUT_DIR}/batch_job_${TIMESTAMP}_stats.txt"
 # Scraper settings
 SOURCE="ebay"  # Change to "mercari" if needed
 SPIDER_NAME="${SOURCE}_graded_cards"
-MAX_PAGES=10  # Pages per search query
-DOWNLOAD_IMAGES=true
-DELETE_FILTERED_IMAGES=true
-USE_NLP=true
+MAX_PAGES=2  # Pages per search query
+DOWNLOAD_IMAGES=True
+DELETE_FILTERED_IMAGES=True
+USE_NLP=True
 
 # Search queries - Add or modify as needed
 SEARCH_QUERIES=(
-    "PSA 10 Pokemon Card"
-    "PSA 9 Pokemon Card"
-    "CGC 10 Pokemon Card"
-    "CGC 9.5 Pokemon Card"
-    "BGS 10 Pokemon Card"
-    "BGS 9.5 Pokemon Card"
-    "SGC 10 Pokemon Card"
-    "TAG 10 Pokemon Card"
+    "CGC 1 Pokemon"
+    "CGC 2 Pokemon"
+    "CGC 3 Pokemon"
+    "CGC 4 Pokemon"
+    "CGC 5 Pokemon"
+    "CGC 6 Pokemon"
+    "CGC 7 Pokemon"
+    "CGC 8 Pokemon"
 )
 
 # Color codes for output
