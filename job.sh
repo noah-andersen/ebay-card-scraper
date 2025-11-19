@@ -12,7 +12,7 @@
 set -e  # Exit on error
 
 # Configuration
-OUTPUT_DIR="cgc_pokemon_ebay"
+OUTPUT_DIR="cgc_pokemon_low_grades"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_JSON="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.json"
 OUTPUT_CSV="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.csv"
@@ -29,14 +29,12 @@ USE_NLP=True
 
 # Search queries - Add or modify as needed
 SEARCH_QUERIES=(
-    "CGC 1 Pokemon"
-    "CGC 2 Pokemon"
-    "CGC 3 Pokemon"
-    "CGC 4 Pokemon"
-    "CGC 5 Pokemon"
-    "CGC 6 Pokemon"
-    "CGC 7 Pokemon"
-    "CGC 8 Pokemon"
+    "CGC 1 Magic The Gathering"
+    "CGC 2 Magic The Gathering"
+    "CGC 3 Magic The Gathering"
+    "CGC 4 Magic The Gathering"
+    "CGC 5 Magic The Gathering"
+    "CGC 6 Magic The Gathering"
 )
 
 # Color codes for output

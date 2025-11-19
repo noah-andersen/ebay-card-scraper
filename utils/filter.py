@@ -2,9 +2,10 @@
 CSV Filter Script for Pokemon Card Data
 
 This script filters out entries from CSV files based on:
-1. Entries with 1 or 0 images listed under the images column
-2. Entries containing the word "thicc" (case-insensitive)
-3. Entries with missing grades that cannot be extracted via NLP from card_name
+1. Duplicate listings (same listing_id from multiple search queries)
+2. Entries with 1 or 0 images listed under the images column
+3. Entries containing the word "thicc" (case-insensitive)
+4. Entries with missing grades that cannot be extracted via NLP from card_name
 
 When a record is removed, associated image files are also deleted.
 """
@@ -189,13 +190,27 @@ def extract_grade_from_text(text: str, nlp=None) -> str:
     return ""
 
 
-def should_filter_row(row: Dict[str, str], nlp=None) -> Tuple[bool, str]:
+def should_filter_row(row: Dict[str, str], nlp=None, seen_listing_ids: set = None) -> Tuple[bool, str]:
     """
     Determine if a row should be filtered out.
+    
+    Args:
+        row: CSV row as dictionary
+        nlp: spaCy NLP model (optional)
+        seen_listing_ids: Set of already-seen listing IDs for duplicate detection
     
     Returns:
         Tuple of (should_filter: bool, reason: str)
     """
+    # Check 0: Duplicate listing (check first for efficiency)
+    if seen_listing_ids is not None:
+        listing_id = row.get('listing_id', '').strip()
+        if listing_id and listing_id in seen_listing_ids:
+            return True, f"Duplicate listing (ID: {listing_id})"
+        elif listing_id:
+            # Add to seen set (will be kept unless filtered by other checks)
+            seen_listing_ids.add(listing_id)
+    
     # Check 1: Image count
     images_str = row.get('images', '')
     image_count = count_images(images_str)
@@ -332,6 +347,7 @@ def filter_csv(input_file: str, output_file: str = None, delete_images: bool = T
     base_dir = input_path.parent
     rows_kept = []
     rows_filtered = []
+    seen_listing_ids = set()  # Track seen listing IDs for duplicate detection
     stats = {
         'total': 0,
         'kept': 0,
@@ -351,7 +367,7 @@ def filter_csv(input_file: str, output_file: str = None, delete_images: bool = T
         
         for row in reader:
             stats['total'] += 1
-            should_filter, reason = should_filter_row(row, nlp)
+            should_filter, reason = should_filter_row(row, nlp, seen_listing_ids)
             
             if should_filter:
                 stats['filtered'] += 1
