@@ -194,6 +194,11 @@ class EbayGradedCardsSpider(scrapy.Spider):
             self.logger.error(f"❌ NO IMAGES FOUND on detail page for: {item['title'][:60]}")
             self.logger.error(f"   Keeping {len(item.get('image_urls', []))} thumbnail(s) as fallback")
         
+        # Skip listings with more than 5 images
+        if len(item.get('image_urls', [])) > 5:
+            self.logger.warning(f"⏭️  SKIPPING listing with {len(item['image_urls'])} images (max 5): {item['title'][:60]}")
+            return
+        
         yield item
     
     def errback(self, failure):
@@ -216,7 +221,15 @@ class EbayGradedCardsSpider(scrapy.Spider):
             if company in title.upper():
                 grading_info['grading_company'] = company
                 
-                # Try to extract grade (e.g., "PSA 10", "BGS 9.5", "TAG 10")
+                # For TAG and CGC, check for "10 Pristine" grade first
+                if company in ['TAG', 'CGC']:
+                    pristine_pattern = rf'{company}\s*10\s*Pristine'
+                    pristine_match = re.search(pristine_pattern, title, re.IGNORECASE)
+                    if pristine_match:
+                        grading_info['grade'] = '10 Pristine'
+                        break
+                
+                # Try to extract standard grade (e.g., "PSA 10", "BGS 9.5", "TAG 10", "CGC 9")
                 pattern = rf'{company}\s*(\d+(?:\.\d+)?)'
                 match = re.search(pattern, title, re.IGNORECASE)
                 if match:

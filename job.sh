@@ -12,7 +12,7 @@
 set -e  # Exit on error
 
 # Configuration
-OUTPUT_DIR="cgc_pokemon_low_grades"
+OUTPUT_DIR="TAG_all_cards"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_JSON="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.json"
 OUTPUT_CSV="${OUTPUT_DIR}/batch_job_${TIMESTAMP}.csv"
@@ -29,12 +29,33 @@ USE_NLP=True
 
 # Search queries - Add or modify as needed
 SEARCH_QUERIES=(
-    "CGC 1 Magic The Gathering"
-    "CGC 2 Magic The Gathering"
-    "CGC 3 Magic The Gathering"
-    "CGC 4 Magic The Gathering"
-    "CGC 5 Magic The Gathering"
-    "CGC 6 Magic The Gathering"
+    "TAG 1 Pokemon Graded Cards"
+    "TAG 2 Pokemon Graded Cards"
+    "TAG 3 Pokemon Graded Cards"
+    "TAG 4 Pokemon Graded Cards"
+    "TAG 5 Pokemon Graded Cards"
+    "TAG 6 Pokemon Graded Cards"
+    "TAG 7 Pokemon Graded Cards"
+    "TAG 8 Pokemon Graded Cards"
+    "TAG 9 Pokemon Graded Cards"
+    "TAG 1 Yugioh Graded Cards"
+    "TAG 2 Yugioh Graded Cards"
+    "TAG 3 Yugioh Graded Cards"
+    "TAG 4 Yugioh Graded Cards"
+    "TAG 5 Yugioh Graded Cards"
+    "TAG 6 Yugioh Graded Cards"
+    "TAG 7 Yugioh Graded Cards"
+    "TAG 8 Yugioh Graded Cards"
+    "TAG 9 Yugioh Graded Cards"
+    "TAG 1 Magic The Gathering Graded Cards"
+    "TAG 2 Magic The Gathering Graded Cards"
+    "TAG 3 Magic The Gathering Graded Cards"
+    "TAG 4 Magic The Gathering Graded Cards"
+    "TAG 5 Magic The Gathering Graded Cards"
+    "TAG 6 Magic The Gathering Graded Cards"
+    "TAG 7 Magic The Gathering Graded Cards"
+    "TAG 8 Magic The Gathering Graded Cards"
+    "TAG 9 Magic The Gathering Graded Cards"
 )
 
 # Color codes for output
